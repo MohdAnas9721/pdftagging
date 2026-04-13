@@ -2,10 +2,10 @@
   "name": "pdf-tagging-server",
   "version": "1.0.0",
   "description": "Backend pipeline for PDF tagging workflow prototype",
-  "main": "src/server.js",
+  "main": "index.js",
   "scripts": {
-    "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "dev": "node --watch index.js",
+    "start": "node index.js"
   },
   "keywords": [
     "pdf",
@@ -17,6 +17,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "mongoose": "^9.4.1",
     "multer": "^2.1.1",
     "pdfjs-dist": "^4.8.69",
     "uuid": "^10.0.0"
