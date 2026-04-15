@@ -1,5 +1,7 @@
 import { Scissors } from "lucide-react";
 
+import { getDisplayTag } from "../utils/tagging";
+
 function AnnotationList({ annotations, onRemove }) {
   return (
     <aside className="panel-surface flex h-full min-h-0 flex-col overflow-hidden px-4 py-5 sm:px-5">
@@ -33,7 +35,7 @@ function AnnotationList({ annotations, onRemove }) {
                       color: annotation.color,
                     }}
                   >
-                    {annotation.tag}
+                    {getDisplayTag(annotation)}
                   </span>
                   <button
                     type="button"

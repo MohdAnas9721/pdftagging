@@ -1,8 +1,14 @@
 const path = require("path");
 const fs = require("fs/promises");
+const mongoose = require("mongoose");
 const { PIPELINE_STEPS, STATUS, JOB_STATE } = require("../../config/constants");
+const PdfDocument = require("../../models/PdfDocument");
 const { parsePdf } = require("../pdf/pdfParserService");
 const { analyzeContent } = require("../analyzer/contentAnalyzerService");
+const {
+  applyAnnotationsToParsedOutput,
+} = require("../analyzer/annotationOverrideService");
+const { buildPdfIdentity } = require("../../utils/pdfIdentity");
 const { generateTagTree } = require("../tagging/tagGeneratorService");
 const { generateReadingOrder } = require("../readingOrder/readingOrderService");
 const {
@@ -135,6 +141,81 @@ const syncTagTreeAltText = (tagTreeOutput, altTextOutput) => {
   };
 };
 
+const loadSourceDocument = async (job) => {
+  if (!job?.sourceDocumentId || mongoose.connection.readyState !== 1) {
+    return null;
+  }
+
+  return PdfDocument.findById(job.sourceDocumentId)
+    .select(
+      "_id rawText pageTexts annotations fileHash pdfFingerprint normalizedFilename fileSize pageCount"
+    )
+    .lean()
+    .catch(() => null);
+};
+
+const getParsedPageCount = (parsedOutput) =>
+  Number(parsedOutput?.document?.pageCount) || Number(parsedOutput?.pages?.length) || 0;
+
+const buildResolvedJobIdentity = (job, parsedOutput) =>
+  buildPdfIdentity({
+    filename: job?.file?.originalName,
+    fileSize: job?.file?.size,
+    pageCount: getParsedPageCount(parsedOutput),
+    fileHash: job?.pdfIdentity?.fileHash || "",
+  });
+
+const loadSavedDocumentByQuery = async (query) =>
+  PdfDocument.findOne({
+    ...query,
+    "annotations.0": { $exists: true },
+  })
+    .sort({ updatedAt: -1 })
+    .select(
+      "_id rawText pageTexts annotations fileHash pdfFingerprint normalizedFilename fileSize pageCount"
+    )
+    .lean()
+    .catch(() => null);
+
+const loadMatchingSavedDocument = async (job, parsedOutput) => {
+  if (mongoose.connection.readyState !== 1) {
+    return null;
+  }
+
+  const sourceDocument = await loadSourceDocument(job);
+
+  if (sourceDocument?.annotations?.length && sourceDocument.rawText) {
+    return sourceDocument;
+  }
+
+  const pdfIdentity = buildResolvedJobIdentity(job, parsedOutput);
+  const fallbackQueries = [];
+
+  if (pdfIdentity.fileHash) {
+    fallbackQueries.push({ fileHash: pdfIdentity.fileHash });
+  }
+
+  if (pdfIdentity.pdfFingerprint) {
+    fallbackQueries.push({ pdfFingerprint: pdfIdentity.pdfFingerprint });
+  }
+
+  fallbackQueries.push({
+    normalizedFilename: pdfIdentity.normalizedFilename,
+    fileSize: pdfIdentity.fileSize,
+    pageCount: pdfIdentity.pageCount,
+  });
+
+  for (const query of fallbackQueries) {
+    const matchedDocument = await loadSavedDocumentByQuery(query);
+
+    if (matchedDocument?.annotations?.length && matchedDocument.rawText) {
+      return matchedDocument;
+    }
+  }
+
+  return null;
+};
+
 const processJob = async (jobId, { reset = false } = {}) => {
   let job = getJob(jobId);
 
@@ -160,9 +241,35 @@ const processJob = async (jobId, { reset = false } = {}) => {
 
     const parsedOutput = await runStep(jobId, "parser", async () => {
       const result = await parsePdf(job.file.path);
-      await persistArtifact(getJob(jobId), "parsed-output", result);
-      syncOutputStatus(jobId, "parsed", result);
-      return result;
+      const pdfIdentity = buildResolvedJobIdentity(getJob(jobId), result);
+      updateJob(jobId, (currentJob) => ({
+        ...currentJob,
+        pdfIdentity,
+      }));
+      const sourceDocument = await loadMatchingSavedDocument(getJob(jobId), result);
+      const enrichedResult =
+        sourceDocument?.annotations?.length && sourceDocument.rawText
+          ? applyAnnotationsToParsedOutput(
+              result,
+              sourceDocument.rawText,
+              sourceDocument.annotations,
+              sourceDocument.pageTexts
+            )
+          : result;
+      if (sourceDocument?._id) {
+        updateJob(jobId, (currentJob) => ({
+          ...currentJob,
+          sourceDocumentId:
+            currentJob.sourceDocumentId || String(sourceDocument._id),
+        }));
+        appendLog(
+          jobId,
+          `Restored ${sourceDocument.annotations.length} saved annotations from MongoDB for matching PDF.`
+        );
+      }
+      await persistArtifact(getJob(jobId), "parsed-output", enrichedResult);
+      syncOutputStatus(jobId, "parsed", enrichedResult);
+      return enrichedResult;
     });
 
     const analysisOutput = await runStep(jobId, "analyzer", async () => {

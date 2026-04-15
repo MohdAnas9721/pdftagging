@@ -3,6 +3,7 @@ import { FileBadge2, Layers3, MousePointerSquareDashed } from "lucide-react";
 import useAnnotations from "../hooks/useAnnotations";
 import { buildHtmlFromAnnotations, stripAnnotationMeta } from "../utils/buildHtml";
 import { saveInlineTags } from "../services/inlineTaggerService";
+import { saveLatestJobId } from "../utils/helpers";
 import AnnotationList from "./AnnotationList";
 import ExportPanel from "./ExportPanel";
 import TagPopup from "./TagPopup";
@@ -184,6 +185,9 @@ function InlineTagger({ rawText, docId }) {
     try {
       const cleanedAnnotations = stripAnnotationMeta(annotations);
       const response = await saveInlineTags(docId, cleanedAnnotations);
+      if (response?.jobId) {
+        saveLatestJobId(response.jobId);
+      }
       setSavedHtml(response.generatedHtml);
       setIsSaved(true);
     } catch (error) {

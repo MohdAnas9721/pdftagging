@@ -2,12 +2,16 @@ import { useEffect, useState } from "react";
 import EmptyState from "../common/EmptyState";
 import PrimaryButton from "../common/PrimaryButton";
 
-function AltTextEditor({ altText, saving, onSave }) {
+function AltTextEditor({ altText, extractedTags, saving, onSave }) {
   const [figures, setFigures] = useState([]);
 
   useEffect(() => {
     setFigures(altText?.figures || []);
   }, [altText]);
+
+  useEffect(() => {
+    console.debug("[pdf-tag-debug] alt text rendered count:", figures.length);
+  }, [figures.length, extractedTags?.summary?.figureCount]);
 
   if (!altText?.figures?.length) {
     return (

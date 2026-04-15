@@ -6,6 +6,8 @@ const generateReadingOrder = (analysisOutput) => {
         order: index + 1,
         blockId: block.id,
         role: block.role,
+        tag: block.tag || block.details?.nativeTag || "",
+        tagSource: block.tagSource || block.details?.tagSource || "",
         text: block.text,
         top: block.top,
         left: block.left,
@@ -39,6 +41,7 @@ const generateReadingOrder = (analysisOutput) => {
   return {
     generatedAt: new Date().toISOString(),
     pages,
+    extractedTags: analysisOutput.extractedTags,
     summary: {
       suspiciousPages: pages.filter((page) => page.warnings.length > 0).length,
       totalWarnings: pages.reduce((sum, page) => sum + page.warnings.length, 0),

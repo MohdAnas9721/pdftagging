@@ -20,6 +20,21 @@ const validateAccessibility = ({
   tagTreeOutput,
 }) => {
   const checks = [];
+  const supportedAnalysisRoles = new Set([
+    "heading",
+    "paragraph",
+    "list_item",
+    "table_row",
+    "figure",
+    "link",
+    "code",
+    "quote",
+    "note",
+    "reference",
+    "formula",
+    "form",
+    "artifact",
+  ]);
   const headings = analysisOutput.pages.flatMap((page) =>
     page.blocks.filter((block) => block.role === "heading")
   );
@@ -100,10 +115,7 @@ const validateAccessibility = ({
 
   const unsupportedBlocks = analysisOutput.pages.flatMap((page) =>
     page.blocks.filter(
-      (block) =>
-        !["heading", "paragraph", "list_item", "table_row", "figure"].includes(
-          block.role
-        )
+      (block) => !supportedAnalysisRoles.has(block.role)
     )
   );
 
@@ -162,6 +174,7 @@ const validateAccessibility = ({
   return {
     generatedAt: new Date().toISOString(),
     checks: sortedChecks,
+    extractedTags: parsedOutput.extractedTags,
     summary: {
       errors: sortedChecks.filter((check) => check.severity === "error").length,
       warnings: sortedChecks.filter((check) => check.severity === "warning")

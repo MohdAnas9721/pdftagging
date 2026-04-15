@@ -1,6 +1,17 @@
+import { useEffect } from "react";
 import EmptyState from "../common/EmptyState";
+import { getDisplayTag } from "../../utils/tagging";
 
-function ReadingOrderPreview({ readingOrder }) {
+function ReadingOrderPreview({ readingOrder, extractedTags }) {
+  const renderedCount = readingOrder?.pages?.reduce(
+    (sum, page) => sum + page.blocks.length,
+    0
+  ) || 0;
+
+  useEffect(() => {
+    console.debug("[pdf-tag-debug] reading order rendered count:", renderedCount);
+  }, [renderedCount, extractedTags?.summary?.dedupedCount]);
+
   if (!readingOrder) {
     return (
       <EmptyState
@@ -33,7 +44,7 @@ function ReadingOrderPreview({ readingOrder }) {
                     {block.order}
                   </span>
                   <div>
-                    <p className="font-medium capitalize text-slate-900">{block.role}</p>
+                    <p className="font-medium text-slate-900">{getDisplayTag(block)}</p>
                     <p className="mt-1 text-slate-600">
                       {block.text || "Figure / non-text block"}
                     </p>

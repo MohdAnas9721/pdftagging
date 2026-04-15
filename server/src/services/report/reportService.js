@@ -10,11 +10,13 @@ const generateReportArtifacts = ({
   validationOutput,
   taggedPdfOutput,
 }) => {
-  const countNodes = (node) =>
-    1 + (node.children || []).reduce((sum, child) => sum + countNodes(child), 0);
-
   const prototypeMessage =
     "Prototype output generated. Structured tagging artifacts ready. Final embedded PDF tag write-back is not yet implemented.";
+  const uniqueTagCount =
+    parsedOutput.extractedTags?.summary?.dedupedCount ??
+    tagTreeOutput.summary?.uniqueExtractedTagCount ??
+    tagTreeOutput.summary?.nodeCount ??
+    0;
 
   const summaryLines = [
     "PDF Tagging Workflow Summary",
@@ -55,7 +57,7 @@ const generateReportArtifacts = ({
         (sum, page) => sum + page.blocks.length,
         0
       ),
-      tagNodes: countNodes(tagTreeOutput.root) - 1,
+      tagNodes: uniqueTagCount,
       readingOrderWarnings: readingOrderOutput.summary.totalWarnings,
       validationErrors: validationOutput.summary.errors,
       validationWarnings: validationOutput.summary.warnings,

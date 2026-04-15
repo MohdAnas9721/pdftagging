@@ -2,9 +2,13 @@ const path = require("path");
 const express = require("express");
 const multer = require("multer");
 const mongoose = require("mongoose");
+const { v4: uuidv4 } = require("uuid");
 const PdfDocument = require("../models/PdfDocument");
 const env = require("../config/env");
 const { extractRawText } = require("../utils/extractText");
+const { buildPdfIdentity, computeFileHash } = require("../utils/pdfIdentity");
+const { ensureDir } = require("../utils/fileUtils");
+const { createJob } = require("../store/jobStore");
 const { AppError } = require("../utils/apiResponse");
 const { sendLeometricResponse } = require("../utils/leometricResponse");
 
@@ -63,11 +67,36 @@ router.post("/", upload.single("pdf"), async (req, res, next) => {
       throw new AppError("PDF file is required.", 400);
     }
 
-    const { rawText, pageCount } = await extractRawText(req.file.path);
+    const fileHash = await computeFileHash(req.file.path);
+    const { rawText, pageCount, pageTexts } = await extractRawText(req.file.path);
+    const pdfIdentity = buildPdfIdentity({
+      filename: req.file.originalname,
+      fileSize: req.file.size,
+      pageCount,
+      fileHash,
+    });
+    const jobId = uuidv4();
+    const workspacePath = path.join(env.tempDir, jobId);
+    await ensureDir(workspacePath);
     const document = await PdfDocument.create({
       filename: req.file.originalname,
       filePath: req.file.path,
+      fileHash: pdfIdentity.fileHash,
+      pdfFingerprint: pdfIdentity.pdfFingerprint,
+      normalizedFilename: pdfIdentity.normalizedFilename,
+      fileSize: pdfIdentity.fileSize,
+      pageCount: pdfIdentity.pageCount,
       rawText,
+      pageTexts,
+      linkedJobId: jobId,
+    });
+    createJob({
+      id: jobId,
+      file: req.file,
+      uploadPath: req.file.path,
+      workspacePath,
+      sourceDocumentId: String(document._id),
+      pdfIdentity,
     });
 
     sendLeometricResponse(res, {
@@ -75,6 +104,7 @@ router.post("/", upload.single("pdf"), async (req, res, next) => {
       message: "PDF uploaded and raw text extracted.",
       data: {
         docId: document._id,
+        jobId,
         rawText,
         filename: document.filename,
         pageCount,

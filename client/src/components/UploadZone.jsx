@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { FileText, LoaderCircle, UploadCloud } from "lucide-react";
 import { uploadInlinePdf } from "../services/inlineTaggerService";
+import { saveLatestJobId } from "../utils/helpers";
 
 function UploadZone({ onUploaded }) {
   const inputRef = useRef(null);
@@ -29,6 +30,9 @@ function UploadZone({ onUploaded }) {
 
     try {
       const data = await uploadInlinePdf(file);
+      if (data?.jobId) {
+        saveLatestJobId(data.jobId);
+      }
       onUploaded(data);
     } catch (requestError) {
       setError(requestError.message);

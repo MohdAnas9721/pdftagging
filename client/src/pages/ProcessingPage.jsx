@@ -37,21 +37,33 @@ function ProcessingPage() {
     () => job?.steps?.find((step) => step.key === job.currentStep)?.label || "Waiting to start",
     [job]
   );
+  const sharedExtractedTags = job?.outputs?.parsed?.extractedTags;
 
   const renderTabContent = () => {
     switch (activeTab) {
       case "parsed":
         return <ParsedDataPreview parsed={job?.outputs?.parsed} />;
       case "analysis":
-        return <AnalysisPreview analysis={job?.outputs?.analysis} />;
+        return (
+          <AnalysisPreview
+            analysis={job?.outputs?.analysis}
+            extractedTags={sharedExtractedTags}
+          />
+        );
       case "tags":
-        return <TagTreePreview tags={job?.outputs?.tags} />;
+        return <TagTreePreview tags={job?.outputs?.tags} extractedTags={sharedExtractedTags} />;
       case "readingOrder":
-        return <ReadingOrderPreview readingOrder={job?.outputs?.readingOrder} />;
+        return (
+          <ReadingOrderPreview
+            readingOrder={job?.outputs?.readingOrder}
+            extractedTags={sharedExtractedTags}
+          />
+        );
       case "altText":
         return (
           <AltTextEditor
             altText={job?.outputs?.altText}
+            extractedTags={sharedExtractedTags}
             saving={actionPending === "altText"}
             onSave={async (figures) => {
               try {
@@ -68,7 +80,12 @@ function ProcessingPage() {
           />
         );
       case "validation":
-        return <ValidationResults validation={job?.outputs?.validation} />;
+        return (
+          <ValidationResults
+            validation={job?.outputs?.validation}
+            extractedTags={sharedExtractedTags}
+          />
+        );
       default:
         return null;
     }

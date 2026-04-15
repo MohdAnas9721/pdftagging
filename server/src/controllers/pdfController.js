@@ -9,6 +9,7 @@ const {
   buildArtifactFilename,
   normalizePdfFilename,
 } = require("../utils/filenameUtils");
+const { buildPdfIdentity, computeFileHash } = require("../utils/pdfIdentity");
 const {
   processJob,
   updateAltTextForJob,
@@ -69,12 +70,20 @@ const uploadPdf = asyncHandler(async (req, res) => {
   const jobId = uuidv4();
   const workspacePath = path.join(env.tempDir, jobId);
   await ensureDir(workspacePath);
+  const fileHash = await computeFileHash(req.file.path);
+  const pdfIdentity = buildPdfIdentity({
+    filename: req.file.originalname,
+    fileSize: req.file.size,
+    pageCount: 0,
+    fileHash,
+  });
 
   const job = createJob({
     id: jobId,
     file: req.file,
     uploadPath: req.file.path,
     workspacePath,
+    pdfIdentity,
   });
 
   sendSuccess(res, {

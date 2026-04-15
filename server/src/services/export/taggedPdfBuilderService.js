@@ -63,7 +63,11 @@ const buildReadingOrderMap = (readingOrderOutput) => {
 const buildTitleFromAnalysis = (analysisOutput) => {
   const heading = analysisOutput.pages
     .flatMap((page) => page.blocks)
-    .find((block) => block.role === "heading" && block.text);
+    .find(
+      (block) =>
+        (/^H[1-6]$/.test(block.tag || "") || block.role === "heading") &&
+        block.text
+    );
 
   return heading?.text || "Tagged PDF Export";
 };
@@ -98,6 +102,20 @@ const renderNode = (node, orderMap) => {
       `;
     case "P":
       return `<p${orderAttr}>${label}</p>`;
+    case "Span":
+      return `<span${orderAttr}>${label}</span>`;
+    case "strong":
+      return `<strong${orderAttr}>${label}</strong>`;
+    case "em":
+      return `<em${orderAttr}>${label}</em>`;
+    case "mark":
+      return `<mark${orderAttr}>${label}</mark>`;
+    case "small":
+      return `<small${orderAttr}>${label}</small>`;
+    case "sub":
+      return `<sub${orderAttr}>${label}</sub>`;
+    case "sup":
+      return `<sup${orderAttr}>${label}</sup>`;
     case "H1":
     case "H2":
     case "H3":

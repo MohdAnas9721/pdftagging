@@ -1,7 +1,14 @@
+import { useEffect } from "react";
 import EmptyState from "../common/EmptyState";
 import StatusBadge from "../common/StatusBadge";
 
-function ValidationResults({ validation }) {
+function ValidationResults({ validation, extractedTags }) {
+  const renderedCount = validation?.checks?.length || 0;
+
+  useEffect(() => {
+    console.debug("[pdf-tag-debug] validation rendered count:", renderedCount);
+  }, [renderedCount, extractedTags?.summary?.dedupedCount]);
+
   if (!validation) {
     return (
       <EmptyState

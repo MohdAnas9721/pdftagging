@@ -15,7 +15,14 @@ const createInitialSteps = () =>
     message: "Waiting to run",
   }));
 
-const createJob = ({ id, file, uploadPath, workspacePath }) => {
+const createJob = ({
+  id,
+  file,
+  uploadPath,
+  workspacePath,
+  sourceDocumentId = "",
+  pdfIdentity = null,
+}) => {
   const job = {
     id,
     state: JOB_STATE.UPLOADED,
@@ -29,6 +36,8 @@ const createJob = ({ id, file, uploadPath, workspacePath }) => {
       storedName: path.basename(uploadPath),
       path: uploadPath,
     },
+    sourceDocumentId,
+    pdfIdentity,
     workspacePath,
     steps: createInitialSteps(),
     logs: [

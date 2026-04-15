@@ -5,6 +5,7 @@ const SUPPORTED_TAGS = new Set([
   "p",
   "a",
   "strong",
+  "em",
   "time",
   "span",
   "small",

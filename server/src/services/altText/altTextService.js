@@ -22,7 +22,11 @@ const generateAltTextEntries = (analysisOutput) => {
     let figureIndex = 0;
 
     page.blocks.forEach((block) => {
-      if (block.role !== "figure") {
+      const isSupportedFigure =
+        block.role === "figure" &&
+        (block.details?.nativeTag === "Figure" || block.details?.inferred === false);
+
+      if (!isSupportedFigure) {
         return;
       }
 
@@ -43,6 +47,7 @@ const generateAltTextEntries = (analysisOutput) => {
   return {
     generatedAt: new Date().toISOString(),
     figures,
+    extractedTags: analysisOutput.extractedTags,
     summary: {
       figureCount: figures.length,
       decorativeCount: figures.filter((figure) => figure.decorative).length,

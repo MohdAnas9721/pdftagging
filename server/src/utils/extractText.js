@@ -33,6 +33,7 @@ const extractRawText = async (filePath) => {
 
   return {
     pageCount: pdf.numPages,
+    pageTexts: pages,
     rawText: pages.join("\n\n"),
   };
 };
